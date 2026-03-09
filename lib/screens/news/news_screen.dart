@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../models/news.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 import 'news_detail_screen.dart';
 
@@ -15,7 +16,7 @@ class NewsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundBase,
       appBar: AppBar(title: const Text('Berita & Artikel')),
-      body: FutureBuilder<List<News>>(
+      body: FutureBuilder<PaginatedResponse<News>>(
         future: _apiService.getNews(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -51,7 +52,9 @@ class NewsScreen extends StatelessWidget {
               ),
             );
           }
-          final newsList = snapshot.data ?? [];
+          final newsList = (snapshot.data?.data ?? [])
+              .where((n) => n.isPublished)
+              .toList();
           if (newsList.isEmpty) {
             return Center(
               child: Column(

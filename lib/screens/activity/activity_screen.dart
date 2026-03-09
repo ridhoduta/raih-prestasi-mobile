@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../models/competition.dart';
 import '../../models/submission.dart';
 import '../../models/achievement.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 
 class ActivityScreen extends StatefulWidget {
@@ -17,9 +19,9 @@ class ActivityScreen extends StatefulWidget {
 
 class _ActivityScreenState extends State<ActivityScreen> {
   final ApiService _apiService = ApiService();
-  late Future<List<CompetitionRegistration>> _registrationsFuture;
-  late Future<List<IndependentSubmission>> _submissionsFuture;
-  late Future<List<Achievement>> _achievementsFuture;
+  late Future<PaginatedResponse<CompetitionRegistration>> _registrationsFuture;
+  late Future<PaginatedResponse<IndependentSubmission>> _submissionsFuture;
+  late Future<PaginatedResponse<Achievement>> _achievementsFuture;
 
   @override
   void initState() {
@@ -80,7 +82,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return RefreshIndicator(
       onRefresh: () async => _refreshData(),
       color: AppColors.primaryGreen,
-      child: FutureBuilder<List<CompetitionRegistration>>(
+      child: FutureBuilder<PaginatedResponse<CompetitionRegistration>>(
         future: _registrationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -123,7 +125,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             );
           }
 
-          final allRegistrations = snapshot.data ?? [];
+          final allRegistrations = snapshot.data?.data ?? [];
           final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
           final registrations = allRegistrations
               .where((r) => r.createdAt.isAfter(oneWeekAgo))
@@ -178,7 +180,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return RefreshIndicator(
       onRefresh: () async => _refreshData(),
       color: AppColors.primaryGreen,
-      child: FutureBuilder<List<IndependentSubmission>>(
+      child: FutureBuilder<PaginatedResponse<IndependentSubmission>>(
         future: _submissionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -221,7 +223,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             );
           }
 
-          final allSubmissions = snapshot.data ?? [];
+          final allSubmissions = snapshot.data?.data ?? [];
           final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
           final submissions = allSubmissions
               .where(
@@ -315,29 +317,55 @@ class _ActivityScreenState extends State<ActivityScreen> {
               ],
             ),
           ),
-          if (sub.description != null && sub.description!.isNotEmpty) ...[
+          if ((sub.description != null && sub.description!.isNotEmpty) ||
+              sub.documentUrl.isNotEmpty) ...[
             const Divider(height: 1, color: AppColors.grey100),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Keterangan',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
+                  if (sub.description != null &&
+                      sub.description!.isNotEmpty) ...[
+                    const Text(
+                      'Keterangan',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    sub.description!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
+                    const SizedBox(height: 4),
+                    Text(
+                      sub.description!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
+                  ],
+                  if (sub.documentUrl.isNotEmpty) ...[
+                    if (sub.description != null && sub.description!.isNotEmpty)
+                      const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.link_rounded,
+                          size: 14,
+                          color: AppColors.primaryGreen,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Dokumen terlampir',
+                          style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -384,7 +412,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         sub.recommendationLetter!.isNotEmpty)
                       IconButton(
                         onPressed: () {
-                          // TODO: Implement file download/view
+                          launchUrl(Uri.parse(sub.recommendationLetter!));
                         },
                         icon: const Icon(
                           Icons.file_download_rounded,
@@ -407,7 +435,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return RefreshIndicator(
       onRefresh: () async => _refreshData(),
       color: AppColors.primaryGreen,
-      child: FutureBuilder<List<Achievement>>(
+      child: FutureBuilder<PaginatedResponse<Achievement>>(
         future: _achievementsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -450,7 +478,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             );
           }
 
-          final allAchievements = snapshot.data ?? [];
+          final allAchievements = snapshot.data?.data ?? [];
           final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
           final achievements = allAchievements
               .where((a) => a.createdAt.isAfter(oneWeekAgo))
@@ -551,6 +579,31 @@ class _ActivityScreenState extends State<ActivityScreen> {
               ],
             ),
           ),
+          if (achievement.certificate != null &&
+              achievement.certificate!.isNotEmpty) ...[
+            const Divider(height: 1, color: AppColors.grey100),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.card_membership_rounded,
+                    size: 14,
+                    color: AppColors.primaryGreen,
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Sertifikat terlampir',
+                    style: TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const Divider(height: 1, color: AppColors.grey100),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -580,7 +633,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     achievement.certificate!.isNotEmpty)
                   IconButton(
                     onPressed: () {
-                      // TODO: Implement certificate view
+                      launchUrl(Uri.parse(achievement.certificate!));
                     },
                     icon: const Icon(
                       Icons.card_membership_rounded,

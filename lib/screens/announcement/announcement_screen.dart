@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../models/announcement.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 
 class AnnouncementScreen extends StatelessWidget {
@@ -14,7 +15,7 @@ class AnnouncementScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundBase,
       appBar: AppBar(title: const Text('Pengumuman')),
-      body: FutureBuilder<List<Announcement>>(
+      body: FutureBuilder<PaginatedResponse<Announcement>>(
         future: _apiService.getAnnouncements(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -50,7 +51,7 @@ class AnnouncementScreen extends StatelessWidget {
               ),
             );
           }
-          final announcements = snapshot.data ?? [];
+          final announcements = snapshot.data?.data ?? [];
           if (announcements.isEmpty) {
             return Center(
               child: Column(

@@ -3,6 +3,7 @@ class News {
   final String title;
   final String content;
   final String? thumbnail;
+  final bool isPublished;
   final DateTime createdAt;
 
   News({
@@ -10,6 +11,7 @@ class News {
     required this.title,
     required this.content,
     this.thumbnail,
+    this.isPublished = false,
     required this.createdAt,
   });
 
@@ -19,6 +21,7 @@ class News {
       title: json['title'],
       content: json['content'],
       thumbnail: json['thumbnail'],
+      isPublished: json['isPublished'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
     );
   }

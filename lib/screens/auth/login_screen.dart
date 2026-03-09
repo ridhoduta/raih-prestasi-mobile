@@ -13,6 +13,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
 
   void _login() async {
     if (_nisnController.text.isEmpty || _passwordController.text.isEmpty) {
@@ -92,12 +93,25 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: Icon(Icons.lock_outline, size: 20),
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
                   hintText: 'Masukkan password Anda',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: !_isPasswordVisible,
               ),
               const SizedBox(height: 32),
               _isLoading

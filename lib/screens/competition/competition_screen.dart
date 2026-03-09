@@ -52,7 +52,8 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
     });
 
     try {
-      final competitions = await _apiService.getActiveCompetitions();
+      final response = await _apiService.getActiveCompetitions();
+      final competitions = response.data;
       setState(() {
         _allCompetitions = competitions;
         _filteredCompetitions = competitions;

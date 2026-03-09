@@ -9,11 +9,12 @@ import '../models/news.dart';
 import '../models/announcement.dart';
 import '../models/academic_score.dart';
 import '../models/auth_response.dart';
+import '../models/api_response.dart';
 
 class ApiService {
   // Use local IP for WiFi access.
-  // static const String baseUrl = 'http://192.168.100.77:3000/api';
-  static const String baseUrl = 'https://raih-prestasi.vercel.app/api';
+  static const String baseUrl = 'http://192.168.100.77:3000/api';
+  // static const String baseUrl = 'https://raih-prestasi.vercel.app/api';
 
   // --- Auth APIs ---
 
@@ -32,15 +33,63 @@ class ApiService {
     }
   }
 
+  Future<bool> changePassword(
+    String studentId,
+    String oldPassword,
+    String newPassword,
+  ) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/student/change-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'studentId': studentId,
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      String errorMessage = 'Gagal mengganti password';
+      try {
+        final body = json.decode(response.body);
+        if (body is Map) {
+          errorMessage = body['message'] ?? body['error'] ?? errorMessage;
+        }
+      } catch (_) {
+        if (response.body.isNotEmpty) {
+          errorMessage = response.body;
+        }
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
   // --- Achievement APIs ---
 
-  Future<List<Achievement>> getAchievements(String studentId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/student/achievement/$studentId'),
-    );
+  Future<PaginatedResponse<Achievement>> getAchievements(
+    String studentId, {
+    int limit = 20,
+    String? cursor,
+    String? search,
+  }) async {
+    final queryParams = {
+      'limit': limit.toString(),
+      if (cursor != null) 'cursor': cursor,
+      if (search != null) 'search': search,
+    };
+    final uri = Uri.parse(
+      '$baseUrl/student/achievement/$studentId',
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body)['data']['data'] ?? [];
-      return data.map((json) => Achievement.fromJson(json)).toList();
+      final Map<String, dynamic> body = json.decode(response.body);
+      return PaginatedResponse.fromJson(
+        body,
+        (json) => Achievement.fromJson(json),
+      );
     } else {
       throw Exception('Gagal mengambil data prestasi');
     }
@@ -57,27 +106,43 @@ class ApiService {
 
   // --- Competition APIs ---
 
-  Future<List<Competition>> getActiveCompetitions() async {
-    final response = await http.get(Uri.parse('$baseUrl/guru/competitions'));
+  Future<PaginatedResponse<Competition>> getActiveCompetitions({
+    int limit = 20,
+    String? cursor,
+    String? search,
+  }) async {
+    final queryParams = {
+      'limit': limit.toString(),
+      if (cursor != null) 'cursor': cursor,
+      if (search != null) 'search': search,
+    };
+    final uri = Uri.parse(
+      '$baseUrl/guru/competitions',
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body)['data'];
-      return data.map((json) => Competition.fromJson(json)).toList();
+      final Map<String, dynamic> body = json.decode(response.body);
+      return PaginatedResponse.fromJson(
+        body,
+        (json) => Competition.fromJson(json),
+      );
     } else {
       throw Exception('Gagal mengambil daftar kompetisi');
     }
   }
 
-  Future<Competition> getCompetitionDetail(String id) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/guru/competitions/$id'),
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body)['data'];
-      return Competition.fromJson(data);
-    } else {
-      throw Exception('Gagal mengambil detail kompetisi');
-    }
-  }
+  // Future<Competition> getCompetitionDetail(String id) async {
+  //   final response = await http.get(
+  //     Uri.parse('$baseUrl/guru/competitions/$id'),
+  //   );
+  //   if (response.statusCode == 200) {
+  //     final data = json.decode(response.body)['data'];
+  //     return Competition.fromJson(data);
+  //   } else {
+  //     throw Exception('Gagal mengambil detail kompetisi');
+  //   }
+  // }
 
   Future<bool> registerCompetition(
     String competitionId,
@@ -91,17 +156,29 @@ class ApiService {
     return response.statusCode == 200 || response.statusCode == 201;
   }
 
-  Future<List<CompetitionRegistration>> getStudentRegistrations(
-    String studentId,
-  ) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/guru/registrations?studentId=$studentId'),
-    );
+  Future<PaginatedResponse<CompetitionRegistration>> getStudentRegistrations(
+    String studentId, {
+    int limit = 20,
+    String? cursor,
+    String? search,
+  }) async {
+    final queryParams = {
+      'studentId': studentId,
+      'limit': limit.toString(),
+      if (cursor != null) 'cursor': cursor,
+      if (search != null) 'search': search,
+    };
+    final uri = Uri.parse(
+      '$baseUrl/guru/registrations',
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body)['data'];
-      return data
-          .map((json) => CompetitionRegistration.fromJson(json))
-          .toList();
+      final Map<String, dynamic> body = json.decode(response.body);
+      return PaginatedResponse.fromJson(
+        body,
+        (json) => CompetitionRegistration.fromJson(json),
+      );
     } else {
       throw Exception('Gagal mengambil data pendaftaran');
     }
@@ -109,15 +186,29 @@ class ApiService {
 
   // --- Independent Submission APIs ---
 
-  Future<List<IndependentSubmission>> getSubmissions(String studentId) async {
-    final response = await http.get(
-      Uri.parse(
-        '$baseUrl/student/independent-submissions?studentId=$studentId',
-      ),
-    );
+  Future<PaginatedResponse<IndependentSubmission>> getSubmissions(
+    String studentId, {
+    int limit = 20,
+    String? cursor,
+    String? search,
+  }) async {
+    final queryParams = {
+      'studentId': studentId,
+      'limit': limit.toString(),
+      if (cursor != null) 'cursor': cursor,
+      if (search != null) 'search': search,
+    };
+    final uri = Uri.parse(
+      '$baseUrl/student/independent-submissions',
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body)['data'];
-      return data.map((json) => IndependentSubmission.fromJson(json)).toList();
+      final Map<String, dynamic> body = json.decode(response.body);
+      return PaginatedResponse.fromJson(
+        body,
+        (json) => IndependentSubmission.fromJson(json),
+      );
     } else {
       throw Exception('Gagal mengambil data pengajuan');
     }
@@ -134,21 +225,50 @@ class ApiService {
 
   // --- News & Announcements ---
 
-  Future<List<News>> getNews() async {
-    final response = await http.get(Uri.parse('$baseUrl/admin/news'));
+  Future<PaginatedResponse<News>> getNews({
+    int limit = 20,
+    String? cursor,
+    String? search,
+  }) async {
+    final queryParams = {
+      'limit': limit.toString(),
+      if (cursor != null) 'cursor': cursor,
+      if (search != null) 'search': search,
+    };
+    final uri = Uri.parse(
+      '$baseUrl/admin/news',
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body)['data'];
-      return data.map((json) => News.fromJson(json)).toList();
+      final Map<String, dynamic> body = json.decode(response.body);
+      return PaginatedResponse.fromJson(body, (json) => News.fromJson(json));
     } else {
       throw Exception('Gagal mengambil berita');
     }
   }
 
-  Future<List<Announcement>> getAnnouncements() async {
-    final response = await http.get(Uri.parse('$baseUrl/guru/announcement'));
+  Future<PaginatedResponse<Announcement>> getAnnouncements({
+    int limit = 20,
+    String? cursor,
+    String? search,
+  }) async {
+    final queryParams = {
+      'limit': limit.toString(),
+      if (cursor != null) 'cursor': cursor,
+      if (search != null) 'search': search,
+    };
+    final uri = Uri.parse(
+      '$baseUrl/guru/announcement',
+    ).replace(queryParameters: queryParams);
+
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body)['data'];
-      return data.map((json) => Announcement.fromJson(json)).toList();
+      final Map<String, dynamic> body = json.decode(response.body);
+      return PaginatedResponse.fromJson(
+        body,
+        (json) => Announcement.fromJson(json),
+      );
     } else {
       throw Exception('Gagal mengambil pengumuman');
     }

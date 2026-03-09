@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../models/submission.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 
 class SubmissionScreen extends StatefulWidget {
@@ -14,7 +16,7 @@ class SubmissionScreen extends StatefulWidget {
 
 class _SubmissionScreenState extends State<SubmissionScreen> {
   final ApiService _apiService = ApiService();
-  late Future<List<IndependentSubmission>> _submissionsFuture;
+  late Future<PaginatedResponse<IndependentSubmission>> _submissionsFuture;
 
   @override
   void initState() {
@@ -239,7 +241,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundBase,
       appBar: AppBar(title: const Text('Pengajuan Mandiri')),
-      body: FutureBuilder<List<IndependentSubmission>>(
+      body: FutureBuilder<PaginatedResponse<IndependentSubmission>>(
         future: _submissionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -280,9 +282,10 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               ),
             );
           }
-          final items = (snapshot.data ?? [])
-              .where((s) => (s.status ?? '').toUpperCase() == 'DITERIMA')
-              .toList();
+          final items = (snapshot.data?.data ?? []).where((s) {
+            final status = (s.status ?? '').toUpperCase();
+            return status == 'DITERIMA' || status == 'DITOLAK';
+          }).toList();
           if (items.isEmpty) {
             return Center(
               child: Column(
@@ -551,10 +554,15 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                           ),
                         ),
                       ),
-                      const Icon(
-                        Icons.open_in_new_rounded,
-                        size: 14,
-                        color: AppColors.primaryGreen,
+                      IconButton(
+                        onPressed: () {
+                          launchUrl(Uri.parse(item.recommendationLetter!));
+                        },
+                        icon: const Icon(
+                          Icons.open_in_new_rounded,
+                          size: 14,
+                          color: AppColors.primaryGreen,
+                        ),
                       ),
                     ],
                   ),

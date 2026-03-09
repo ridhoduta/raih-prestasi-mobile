@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../models/competition.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 
 class CompetitionHistoryScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class CompetitionHistoryScreen extends StatefulWidget {
 
 class _CompetitionHistoryScreenState extends State<CompetitionHistoryScreen> {
   final ApiService _apiService = ApiService();
-  late Future<List<CompetitionRegistration>> _registrationsFuture;
+  late Future<PaginatedResponse<CompetitionRegistration>> _registrationsFuture;
 
   @override
   void initState() {
@@ -35,7 +36,7 @@ class _CompetitionHistoryScreenState extends State<CompetitionHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundBase,
       appBar: AppBar(title: const Text('Riwayat Kompetisi')),
-      body: FutureBuilder<List<CompetitionRegistration>>(
+      body: FutureBuilder<PaginatedResponse<CompetitionRegistration>>(
         future: _registrationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -77,7 +78,7 @@ class _CompetitionHistoryScreenState extends State<CompetitionHistoryScreen> {
             );
           }
 
-          final items = (snapshot.data ?? [])
+          final items = (snapshot.data?.data ?? [])
               .where(
                 (r) =>
                     r.status.toUpperCase() == 'DITERIMA' ||
@@ -237,6 +238,55 @@ class _CompetitionHistoryScreenState extends State<CompetitionHistoryScreen> {
                 'Didaftarkan',
                 formattedDate,
               ),
+            if (item.answers != null && item.answers!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  title: const Text(
+                    'Detail Pendaftaran',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: const EdgeInsets.only(bottom: 16),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...item.answers!.map(
+                      (ans) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ans.fieldLabel,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              ans.value.toString(),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (item.note != null && item.note!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(

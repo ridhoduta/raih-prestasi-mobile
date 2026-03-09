@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../models/achievement.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 
 class AchievementScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class AchievementScreen extends StatefulWidget {
 
 class _AchievementScreenState extends State<AchievementScreen> {
   final ApiService _apiService = ApiService();
-  late Future<List<Achievement>> _achievementsFuture;
+  late Future<PaginatedResponse<Achievement>> _achievementsFuture;
 
   @override
   void initState() {
@@ -238,7 +239,7 @@ class _AchievementScreenState extends State<AchievementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Prestasi Saya')),
-      body: FutureBuilder<List<Achievement>>(
+      body: FutureBuilder<PaginatedResponse<Achievement>>(
         future: _achievementsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -279,9 +280,10 @@ class _AchievementScreenState extends State<AchievementScreen> {
               ),
             );
           }
-          final items = (snapshot.data ?? [])
-              .where((a) => a.status.toUpperCase() == 'TERVERIFIKASI')
-              .toList();
+          final items = (snapshot.data?.data ?? []).where((a) {
+            final status = a.status.toUpperCase();
+            return status == 'TERVERIFIKASI' || status == 'DITOLAK';
+          }).toList();
           if (items.isEmpty) {
             return Center(
               child: Column(

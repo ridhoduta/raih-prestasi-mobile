@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../models/news.dart';
 import '../../models/announcement.dart';
+import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 import '../news/news_detail_screen.dart';
 
@@ -34,8 +35,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ]);
       if (mounted) {
         setState(() {
-          _news = results[0] as List<News>;
-          _announcements = results[1] as List<Announcement>;
+          _news = (results[0] as PaginatedResponse<News>).data;
+          _announcements = (results[1] as PaginatedResponse<Announcement>).data;
           _isLoading = false;
         });
       }
