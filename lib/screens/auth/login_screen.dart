@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../home/home_screen.dart';
+import '../../services/session_service.dart';
+import '../../services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -30,6 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
         _nisnController.text,
         _passwordController.text,
       );
+
+      // Save user session
+      await SessionService.saveUser(response.user);
+
+      // Sync FCM token with server
+      await NotificationService().syncTokenWithServer();
 
       if (mounted) {
         Navigator.of(context).pushReplacement(

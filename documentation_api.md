@@ -1,86 +1,53 @@
-# API Documentation - Raih Prestasi
+# Walkthrough - Firebase Cloud Messaging & Notifications
 
-Dokumentasi API untuk project Raih Prestasi Web.
+I have successfully implemented the notification flow for students when a Guru updates their status.
 
-## Admin API
-| Method | Route | Response |
-| :--- | :--- | :--- |
-| GET | `/api/admin/competition-categories` | `{ success: boolean, data: Category[] }` |
-| POST | `/api/admin/competition-categories` | `{ success: boolean, data: Category }` |
-| GET | `/api/admin/competition-categories/:id` | `{ success: boolean, data: Category }` |
-| PUT | `/api/admin/competition-categories/:id` | `{ success: boolean, data: Category }` |
-| DELETE | `/api/admin/competition-categories/:id` | `{ success: boolean, message: string }` (Soft delete) |
-| GET | `/api/admin/competition-levels` | `{ success: boolean, data: Level[] }` |
-| POST | `/api/admin/competition-levels` | `{ success: boolean, data: Level }` |
-| GET | `/api/admin/competition-levels/:id` | `{ success: boolean, data: Level }` |
-| PUT | `/api/admin/competition-levels/:id` | `{ success: boolean, data: Level }` |
-| DELETE | `/api/admin/competition-levels/:id` | `{ success: boolean, message: string }` (Soft delete) |
-| GET | `/api/admin/dashboard` | `{ success: boolean, data: { totalGuru, totalSiswa, activeCompetitions, totalPrestasi, recentActivities } }` |
-| GET | `/api/admin/guru` | `{ success: boolean, data: Guru[] }` |
-| POST | `/api/admin/guru` | `{ success: boolean, message: string, data: Guru }` |
-| GET | `/api/admin/guru/:id` | `{ success: boolean, data: Guru }` |
-| PUT | `/api/admin/guru/:id` | `{ success: boolean, message: string, data: Guru }` |
-| DELETE | `/api/admin/guru/:id` | `{ success: boolean, message: string }` (Deactivate) |
-| GET | `/api/admin/news` | `{ success: boolean, data: News[] }` |
-| POST | `/api/admin/news` | `{ success: boolean, message: string, data: News }` |
-| GET | `/api/admin/news/:id` | `{ success: boolean, data: News }` |
-| PUT | `/api/admin/news/:id` | `{ success: boolean, message: string, data: News }` |
-| DELETE | `/api/admin/news/:id` | `{ success: boolean, message: string }` |
-| GET | `/api/admin/students` | `{ success: boolean, data: Student[] }` |
-| POST | `/api/admin/students` | `{ success: boolean, data: Student }` |
+## Changes Made
 
-## Auth API
-| Method | Route | Response |
-| :--- | :--- | :--- |
-| POST | `/api/auth/login` | `{ message: string, user: { id, name, email, nisn, role } }` |
-| POST | `/api/auth/logout` | `{ message: string }` |
+### 1. Database Schema
+Updated `prisma/schema.prisma` with two new models:
+- **`FCMToken`**: Stores student FCM tokens (supports multiple devices).
+- **`Notification`**: Stores the history of notifications sent to students.
 
-## Guru API
-| Method | Route | Response |
-| :--- | :--- | :--- |
-| GET | `/api/guru/achievement` | `{ success: boolean, data: Achievement[] }` |
-| GET | `/api/guru/achievement/:id` | `{ success: boolean, message: string, data: Achievement }` |
-| PUT | `/api/guru/achievement/:id` | `{ success: boolean, message: string, data: Achievement }` |
-| DELETE | `/api/guru/achievement/:id` | `{ success: boolean, message: string, data: Achievement }` |
-| GET | `/api/guru/announcement` | `{ success: boolean, data: Announcement[] }` |
-| POST | `/api/guru/announcement` | `{ success: boolean, message: string, data: Announcement }` |
-| GET | `/api/guru/announcement/:id` | `{ success: boolean, data: Announcement }` |
-| PUT | `/api/guru/announcement/:id` | `{ success: boolean, message: string, data: Announcement }` |
-| DELETE | `/api/guru/announcement/:id` | `{ success: boolean, message: string }` |
-| GET | `/api/guru/competitions` | `{ success: boolean, data: Competition[] }` |
-| POST | `/api/guru/competitions` | `{ success: boolean, data: Competition }` |
-| GET | `/api/guru/competitions/:id` | `{ success: boolean, data: Competition }` |
-| PUT | `/api/guru/competitions/:id` | `{ success: boolean, message: string, data: Competition }` |
-| DELETE | `/api/guru/competitions/:id` | `{ success: boolean, message: string }` |
-| POST | `/api/guru/competitions/:id/form-fields` | `{ success: boolean, message: string, insertedCount: number }` |
-| GET | `/api/guru/competitions/:id/form-fields` | `{ success: boolean, data: FormField[] }` |
-| PUT | `/api/guru/competitions/:id/form-fields` | `{ success: boolean, message: string, data: FormField }` |
-| DELETE | `/api/guru/competitions/:id/form-fields` | `{ success: boolean, message: string }` |
-| GET | `/api/guru/competitions/:id/registrations` | `{ success: boolean, data: Registration[] }` |
-| GET | `/api/guru/competitions/:id/registrations/:registrationId` | `{ success: boolean, data: RegistrationDetail }` |
-| PATCH | `/api/guru/competitions/:id/registrations/:registrationId/verify` | `{ success: boolean, message: string, data: Registration }` |
-| GET | `/api/guru/independent-submissions` | `{ success: boolean, data: Submission[] }` |
-| GET | `/api/guru/independent-submissions/:id` | `{ success: boolean, data: Submission[] }` |
-| PUT | `/api/guru/independent-submissions/:id` | `{ success: boolean, message: string, data: Submission }` |
-| DELETE | `/api/guru/independent-submissions/:id` | `{ success: boolean, message: string }` |
-| GET | `/api/guru/registrations` | `{ success: boolean, data: Registration[] }` |
-| GET | `/api/guru/registrations/:id` | `{ success: boolean, data: RegistrationDetail }` |
-| PUT | `/api/guru/registrations/:id` | `{ success: boolean, message: string, data: Registration }` |
+Used `npx prisma generate` to update the client.
 
-## Student API
-| Method | Route | Response |
-| :--- | :--- | :--- |
-| POST | `/api/student/achievement` | `{ success: boolean, message: string, data: { achievement } }` |
-| GET | `/api/student/achievement/:studentId` | `{ success: boolean, message: string, data: { data } }` |
-| GET | `/api/student/achievement/:studentId/:id` | `{ success: boolean, message: string, data: { data } }` |
-| POST | `/api/student/competitions/:id/register` | `{ success: boolean, message: string, data: { registrationId } }` |
-| GET | `/api/student/independent-submissions` | `{ success: boolean, data: Submission[] }` |
-| POST | `/api/student/independent-submissions` | `{ success: boolean, data: Submission }` |
-| GET | `/api/student/independent-submissions/:id` | `{ success: boolean, data: Submission }` |
-| PUT | `/api/student/independent-submissions/:id` | `{ success: boolean, message: string, data: Submission }` |
-| DELETE | `/api/student/independent-submissions/:id` | `{ success: boolean, message: string }` |
+### 2. Service Layer
+Refactored `src/app/service/pushNotif.ts`:
+- **`sendNotification(tokens: string[], ...)`**: Now supports sending to multiple tokens at once using `sendEachForMulticast`.
+- **`createAndSendNotification(...)`**: A high-level helper that:
+    1. Saves the notification to the database.
+    2. Fetches all active tokens for the student.
+    3. Triggers the push notification.
+- Added **auto-cleanup**: If a token is invalid (unregistered), it is automatically removed from the database.
 
-## Upload API
-| Method | Route | Response |
-| :--- | :--- | :--- |
-| POST | `/api/upload` | `{ success: boolean, url: { publicUrl: string } }` |
+### 3. Student API Routes
+- **`POST /api/student/fcm-token`**: Allows students to register/update their FCM tokens upon login.
+- **`GET /api/student/notifications`**: Fetches the notification history with cursor-based pagination.
+- **`PATCH /api/student/notifications`**: Marks notifications as read (supports specific ID or "mark all").
+
+### 4. Guru API Integration
+Integrated notification triggers in the Following routes:
+- **Achievements**: `PUT /api/guru/achievement/[id]/route.ts`
+- **Independent Submissions**: `PUT /api/guru/independent-submissions/[id]/route.ts`
+- **Registrations**: `PUT /api/guru/registrations/[id]/route.ts`
+
+## How to Test
+
+### 1. Save Token
+From the Flutter app (or Postman), call:
+`POST /api/student/fcm-token`
+Body: `{ "token": "your_fcm_token_here" }`
+
+### 2. Trigger Notification
+As a Guru, update the status of:
+- An independent submission.
+- A competition registration.
+- An achievement verification.
+
+### 3. Fetch Notifications
+As a student, fetch your list:
+`GET /api/student/notifications?limit=10`
+
+---
+> [!NOTE]
+> Make sure your `serviceAccountKey.json` is correctly placed in `src/app/service/` as referenced in `firebaseService.ts`.

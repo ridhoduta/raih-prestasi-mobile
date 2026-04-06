@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:raih_prestasi_mobile/screens/profile/profile_screen.dart';
+import '../notification/notification_screen.dart';
 import '../../theme/app_theme.dart';
-import '../achievement/achievement_screen.dart';
 import '../activity/activity_screen.dart';
-import '../submission/submission_screen.dart';
 import '../competition/competition_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../score/score_screen.dart';
-import '../competition_history/competition_history_screen.dart';
 import '../announcement/announcement_screen.dart';
-import '../profile/profile_screen.dart';
+import '../history/history_screen.dart';
 import '../../models/auth_response.dart';
+import '../../services/session_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final StudentUser user;
@@ -57,7 +57,14 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -145,46 +152,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
                 _buildDrawerItem(
-                  Icons.emoji_events_outlined,
-                  Icons.emoji_events_rounded,
-                  "RiwayatPrestasi",
+                  Icons.history_rounded,
+                  Icons.history_rounded,
+                  "Riwayat Saya",
                   () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            AchievementScreen(studentId: widget.user.id),
-                      ),
-                    );
-                  },
-                ),
-                _buildDrawerItem(
-                  Icons.assignment_outlined,
-                  Icons.assignment_rounded,
-                  "Riwayat Pengajuan Lomba",
-                  () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            SubmissionScreen(studentId: widget.user.id),
-                      ),
-                    );
-                  },
-                ),
-                _buildDrawerItem(
-                  Icons.history_edu_outlined,
-                  Icons.history_edu_rounded,
-                  "Riwayat Kompetisi",
-                  () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            CompetitionHistoryScreen(studentId: widget.user.id),
+                            HistoryScreen(studentId: widget.user.id),
                       ),
                     );
                   },
@@ -212,8 +189,11 @@ class _HomeScreenState extends State<HomeScreen> {
             Icons.logout_rounded,
             Icons.logout_rounded,
             "Keluar",
-            () {
-              Navigator.of(context).pushReplacementNamed('/');
+            () async {
+              await SessionService.clearSession();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed('/login');
+              }
             },
             color: Colors.redAccent,
           ),

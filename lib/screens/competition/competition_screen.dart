@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/competition.dart';
-import '../../services/api_service.dart';
+import '../../providers/competition_provider.dart';
 import 'competition_detail_screen.dart';
 import 'competition_registration_screen.dart';
 
@@ -16,102 +17,31 @@ class CompetitionScreen extends StatefulWidget {
 }
 
 class _CompetitionScreenState extends State<CompetitionScreen> {
-  final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
-
-  List<Competition> _allCompetitions = [];
-  List<Competition> _filteredCompetitions = [];
-  bool _isLoading = true;
-  String? _error;
-
-  String _selectedCategory = 'Semua';
-  String _selectedLevel = 'Semua';
-  String _selectedStatus = 'Semua';
-
-  List<String> _categories = ['Semua'];
-  List<String> _levels = ['Semua'];
-  final List<String> _statuses = ['Semua', 'Aktif', 'Tidak Aktif'];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _fetchCompetitions();
-    _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
+    
+    // Initial fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CompetitionProvider>().fetchCompetitions(refresh: true);
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchCompetitions() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final response = await _apiService.getActiveCompetitions();
-      final competitions = response.data;
-      setState(() {
-        _allCompetitions = competitions;
-        _filteredCompetitions = competitions;
-
-        _categories = [
-          'Semua',
-          ..._allCompetitions.map((e) => e.categoryName).toSet().toList(),
-        ];
-        _levels = [
-          'Semua',
-          ..._allCompetitions.map((e) => e.levelName).toSet().toList(),
-        ];
-
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<CompetitionProvider>().fetchCompetitions();
     }
-  }
-
-  void _onSearchChanged() {
-    _applyFilters();
-  }
-
-  void _applyFilters() {
-    setState(() {
-      _filteredCompetitions = _allCompetitions.where((comp) {
-        final matchesSearch =
-            comp.title.toLowerCase().contains(
-              _searchController.text.toLowerCase(),
-            ) ||
-            (comp.description?.toLowerCase().contains(
-                  _searchController.text.toLowerCase(),
-                ) ??
-                false);
-
-        final matchesCategory =
-            _selectedCategory == 'Semua' ||
-            comp.categoryName == _selectedCategory;
-        final matchesLevel =
-            _selectedLevel == 'Semua' || comp.levelName == _selectedLevel;
-
-        bool matchesStatus = true;
-        if (_selectedStatus == 'Aktif') {
-          matchesStatus = comp.isActive;
-        } else if (_selectedStatus == 'Tidak Aktif') {
-          matchesStatus = !comp.isActive;
-        }
-
-        return matchesSearch &&
-            matchesCategory &&
-            matchesLevel &&
-            matchesStatus;
-      }).toList();
-    });
   }
 
   @override
@@ -121,28 +51,36 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
         children: [
           _buildSearchAndFilterHeader(),
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryGreen,
-                    ),
-                  )
-                : _error != null
-                ? _buildErrorWidget()
-                : _filteredCompetitions.isEmpty
-                ? _buildEmptyWidget()
-                : RefreshIndicator(
-                    onRefresh: _fetchCompetitions,
-                    color: AppColors.primaryGreen,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                      itemCount: _filteredCompetitions.length,
-                      itemBuilder: (context, index) {
-                        final competition = _filteredCompetitions[index];
-                        return _buildCompetitionCard(competition);
-                      },
-                    ),
+            child: Consumer<CompetitionProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.competitions.isEmpty) {
+                  return _buildSkeletonList();
+                }
+
+                if (provider.competitions.isEmpty) {
+                  return _buildEmptyWidget();
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () => provider.fetchCompetitions(refresh: true),
+                  color: AppColors.primaryGreen,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    itemCount: provider.competitions.length + (provider.hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index < provider.competitions.length) {
+                        return _buildCompetitionCard(provider.competitions[index]);
+                      }
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      );
+                    },
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -150,6 +88,7 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
   }
 
   Widget _buildSearchAndFilterHeader() {
+    final provider = context.watch<CompetitionProvider>();
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
@@ -171,6 +110,7 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
         children: [
           TextField(
             controller: _searchController,
+            onSubmitted: (val) => provider.updateFilters(search: val),
             decoration: InputDecoration(
               hintText: 'Cari kompetisi impianmu...',
               prefixIcon: const Icon(
@@ -185,7 +125,10 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
                         size: 20,
                         color: AppColors.grey400,
                       ),
-                      onPressed: () => _searchController.clear(),
+                      onPressed: () {
+                        _searchController.clear();
+                        provider.updateFilters(search: '');
+                      },
                     )
                   : null,
             ),
@@ -198,32 +141,23 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
               children: [
                 _buildFilterDropdown(
                   label: 'KATEGORI',
-                  value: _selectedCategory,
-                  items: _categories,
-                  onChanged: (val) {
-                    setState(() => _selectedCategory = val!);
-                    _applyFilters();
-                  },
+                  value: provider.category,
+                  items: provider.categories,
+                  onChanged: (val) => provider.updateFilters(category: val),
                 ),
                 const SizedBox(width: 12),
                 _buildFilterDropdown(
                   label: 'TINGKAT',
-                  value: _selectedLevel,
-                  items: _levels,
-                  onChanged: (val) {
-                    setState(() => _selectedLevel = val!);
-                    _applyFilters();
-                  },
+                  value: provider.level,
+                  items: provider.levels,
+                  onChanged: (val) => provider.updateFilters(level: val),
                 ),
                 const SizedBox(width: 12),
                 _buildFilterDropdown(
                   label: 'STATUS',
-                  value: _selectedStatus,
-                  items: _statuses,
-                  onChanged: (val) {
-                    setState(() => _selectedStatus = val!);
-                    _applyFilters();
-                  },
+                  value: provider.status,
+                  items: const ['Semua', 'Aktif', 'Tidak Aktif'],
+                  onChanged: (val) => provider.updateFilters(status: val),
                 ),
               ],
             ),
@@ -456,33 +390,11 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
     );
   }
 
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
-            const SizedBox(height: 16),
-            Text(
-              'Terjadi kesalahan',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error ?? '',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _fetchCompetitions,
-              child: const Text('Coba Lagi'),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: 3,
+      itemBuilder: (context, index) => const CompetitionSkeletonCard(),
     );
   }
 
@@ -505,6 +417,71 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CompetitionSkeletonCard extends StatefulWidget {
+  const CompetitionSkeletonCard({super.key});
+
+  @override
+  State<CompetitionSkeletonCard> createState() => _CompetitionSkeletonCardState();
+}
+
+class _CompetitionSkeletonCardState extends State<CompetitionSkeletonCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.3, end: 0.6).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 20),
+        child: Column(
+          children: [
+            AspectRatio(aspectRatio: 16 / 9, child: Container(color: AppColors.grey100)),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 80, height: 24, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20))),
+                      const SizedBox(width: 8),
+                      Container(width: 60, height: 24, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(width: double.infinity, height: 24, color: AppColors.grey100),
+                  const SizedBox(height: 8),
+                  Container(width: 200, height: 24, color: AppColors.grey100),
+                  const SizedBox(height: 20),
+                  Container(width: double.infinity, height: 48, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(12))),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,29 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/announcement.dart';
-import '../../models/api_response.dart';
-import '../../services/api_service.dart';
+import '../../providers/dashboard_provider.dart';
 
-class AnnouncementScreen extends StatelessWidget {
-  final ApiService _apiService = ApiService();
+class AnnouncementScreen extends StatefulWidget {
+  const AnnouncementScreen({super.key});
 
-  AnnouncementScreen({super.key});
+  @override
+  State<AnnouncementScreen> createState() => _AnnouncementScreenState();
+}
+
+class _AnnouncementScreenState extends State<AnnouncementScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DashboardProvider>().loadDashboardData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundBase,
       appBar: AppBar(title: const Text('Pengumuman')),
-      body: FutureBuilder<PaginatedResponse<Announcement>>(
-        future: _apiService.getAnnouncements(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<DashboardProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading && provider.announcements.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primaryGreen),
             );
           }
-          if (snapshot.hasError) {
+
+          if (provider.error != null && provider.announcements.isEmpty) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -42,7 +53,7 @@ class AnnouncementScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      snapshot.error.toString(),
+                      provider.error!,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
@@ -51,41 +62,14 @@ class AnnouncementScreen extends StatelessWidget {
               ),
             );
           }
-          final announcements = snapshot.data?.data ?? [];
+
+          final announcements = provider.announcements;
           if (announcements.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: const BoxDecoration(
-                      color: AppColors.lightGreenBg,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications_off_outlined,
-                      size: 80,
-                      color: AppColors.primaryGreen,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Belum Ada Pengumuman',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Cek kembali nanti untuk informasi terbaru.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            );
+            return _buildEmptyState(context);
           }
 
           return RefreshIndicator(
-            onRefresh: () async {}, // Handle refresh logic if needed
+            onRefresh: () => provider.loadDashboardData(refresh: true),
             color: AppColors.primaryGreen,
             child: ListView.builder(
               padding: const EdgeInsets.all(24),
@@ -96,86 +80,124 @@ class AnnouncementScreen extends StatelessWidget {
                   'dd MMM yyyy, HH:mm',
                 ).format(announcement.createdAt);
 
-                return Card(
-                  child: InkWell(
-                    onTap: () {
-                      _showAnnouncementDetail(context, announcement);
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.lightGreenBg,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.campaign_rounded,
-                                  color: AppColors.primaryGreen,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                dateStr,
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            announcement.title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                              height: 1.3,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            announcement.content,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.copyWith(height: 1.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Baca Selengkapnya',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                color: AppColors.primaryGreen,
-                                size: 14,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
+                return _buildAnnouncementCard(context, announcement, dateStr);
               },
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: const BoxDecoration(
+              color: AppColors.lightGreenBg,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.notifications_off_outlined,
+              size: 80,
+              color: AppColors.primaryGreen,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Belum Ada Pengumuman',
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Cek kembali nanti untuk informasi terbaru.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnnouncementCard(
+    BuildContext context,
+    Announcement announcement,
+    String dateStr,
+  ) {
+    return Card(
+      child: InkWell(
+        onTap: () => _showAnnouncementDetail(context, announcement),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.lightGreenBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.campaign_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    dateStr,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                announcement.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                announcement.content,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Baca Selengkapnya',
+                    style: TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppColors.primaryGreen,
+                    size: 14,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

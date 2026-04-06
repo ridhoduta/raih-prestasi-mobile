@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "454216579117",
+    "project_id": "raih-prestasi-43e90",
+    "storage_bucket": "raih-prestasi-43e90.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454216579117:android:f67ecbc61ea8c7f3fce0a4",
+        "android_client_info": {
+          "package_name": "com.ridho.raih_prestasi_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWkYbOCm8H91QL0KqgQyIdsifbKPH0-cY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
