@@ -24,6 +24,7 @@ class ApiService {
   ApiService._internal();
 
   static const String baseUrl = 'https://raih-prestasi.vercel.app/api';
+  // static const String baseUrl = 'http://localhost:3000/api';
 
   // Simple in-memory cache for GET requests.
   final Map<String, dynamic> _cache = {};
@@ -119,6 +120,35 @@ class ApiService {
       final paginatedResult = PaginatedResponse.fromJson(jsonData, fromJson);
       _cache[cacheKey] = paginatedResult;
       return paginatedResult;
+    } else {
+      throw Exception('Gagal mengambil data dari $path');
+    }
+  }
+
+  Future<T> _getSingleData<T>(
+    String path,
+    Map<String, String> queryParams,
+    T Function(Map<String, dynamic>) fromJson, {
+    bool forceRefresh = false,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+    final cacheKey = uri.toString();
+
+    if (!forceRefresh && _cache.containsKey(cacheKey)) {
+      return _cache[cacheKey] as T;
+    }
+
+    final headers = await _getHeaders();
+    final response = await client.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonData = await compute(
+        _decodeJson,
+        response.body,
+      );
+      
+      final result = fromJson(jsonData['data'] ?? jsonData);
+      _cache[cacheKey] = result;
+      return result;
     } else {
       throw Exception('Gagal mengambil data dari $path');
     }
@@ -257,6 +287,38 @@ class ApiService {
     } else {
       throw Exception('Gagal mengambil nilai akademik');
     }
+  }
+
+  Future<Achievement> getAchievementById(String id) async {
+    return _getSingleData(
+      '/student/achievement/detail/$id',
+      {},
+      (json) => Achievement.fromJson(json),
+    );
+  }
+
+  Future<IndependentSubmission> getSubmissionById(String id) async {
+    return _getSingleData(
+      '/student/independent-submissions/$id',
+      {},
+      (json) => IndependentSubmission.fromJson(json),
+    );
+  }
+
+  Future<CompetitionRegistration> getRegistrationById(String id) async {
+    return _getSingleData(
+      '/guru/registrations/$id',
+      {},
+      (json) => CompetitionRegistration.fromJson(json),
+    );
+  }
+
+  Future<Announcement> getAnnouncementById(String id) async {
+    return _getSingleData(
+      '/guru/announcement/$id',
+      {},
+      (json) => Announcement.fromJson(json),
+    );
   }
 
   // --- Notification & FCM APIs ---

@@ -98,12 +98,14 @@ class CompetitionRegistration {
 
   factory CompetitionRegistration.fromJson(Map<String, dynamic> json) {
     return CompetitionRegistration(
-      id: json['id'],
-      competitionId: json['competitionId'],
-      studentId: json['studentId'],
-      status: json['status'],
+      id: json['id'] ?? '',
+      competitionId: json['competitionId'] ?? json['competition']?['id'] ?? '',
+      studentId: json['studentId'] ?? json['student']?['id'] ?? '',
+      status: json['status'] ?? '',
       note: json['note'],
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
       competition: json['competition'] != null
           ? Competition.fromJson(json['competition'])
           : null,
@@ -129,7 +131,7 @@ class RegistrationAnswerDetail {
 
   factory RegistrationAnswerDetail.fromJson(Map<String, dynamic> json) {
     return RegistrationAnswerDetail(
-      id: json['id'],
+      id: json['id'] ?? '',
       fieldLabel: json['field']?['label'] ?? 'Unknown Field',
       value: json['value'],
     );

@@ -38,11 +38,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 60,
+                    color: Colors.redAccent,
+                  ),
                   const SizedBox(height: 16),
-                  Text('Gagal memuat data', style: Theme.of(context).textTheme.headlineMedium),
+                  Text(
+                    'Gagal memuat data',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
                   const SizedBox(height: 8),
-                  Text(provider.error!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    provider.error!,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () => provider.loadDashboardData(refresh: true),
@@ -64,7 +75,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (provider.announcements.isEmpty)
                 _buildEmptyState("Belum ada pengumuman.")
               else
-                ...provider.announcements.map((ann) => _buildAnnouncementCard(ann)),
+                ...provider.announcements.map(
+                  (ann) => _buildAnnouncementCard(ann),
+                ),
               const SizedBox(height: 24),
               _buildSectionTitle("Berita & Artikel", Icons.newspaper_rounded),
               if (provider.news.isEmpty)
@@ -109,7 +122,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.lightGreenBg, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: AppColors.lightGreenBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, color: AppColors.primaryGreen, size: 20),
           ),
           const SizedBox(width: 12),
@@ -157,15 +173,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => NewsDetailScreen(news: news)));
-        },
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => NewsDetailScreen(news: news))),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: news.thumbnail != null ? Image.network(news.thumbnail!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder()) : _buildImagePlaceholder(),
+              child: news.thumbnail != null
+                  ? Image.network(news.thumbnail!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder())
+                  : _buildImagePlaceholder(),
             ),
             Padding(
               padding: const EdgeInsets.all(20.0),
@@ -195,7 +211,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildImagePlaceholder() {
-    return Container(color: Colors.grey[100], child: const Center(child: Icon(Icons.image_outlined, size: 48, color: Colors.grey)));
+    return Container(
+      color: Colors.grey[100],
+      child: const Center(
+        child: Icon(Icons.image_outlined, size: 48, color: Colors.grey),
+      ),
+    );
   }
 }
 
@@ -207,14 +228,18 @@ class DashboardSkeletonCard extends StatefulWidget {
   State<DashboardSkeletonCard> createState() => _DashboardSkeletonCardState();
 }
 
-class _DashboardSkeletonCardState extends State<DashboardSkeletonCard> with SingleTickerProviderStateMixin {
+class _DashboardSkeletonCardState extends State<DashboardSkeletonCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacity;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
     _opacity = Tween<double>(begin: 0.3, end: 0.6).animate(_controller);
   }
 
@@ -231,7 +256,10 @@ class _DashboardSkeletonCardState extends State<DashboardSkeletonCard> with Sing
       child: Container(
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
         height: widget.height,
-        decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: AppColors.grey100,
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }

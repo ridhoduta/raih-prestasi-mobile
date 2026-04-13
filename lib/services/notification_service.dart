@@ -1,7 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'session_service.dart';
+import '../main.dart';
 
 /// Top-level function to handle background messages.
 /// This MUST be a top-level function (not a class method) for Firebase Messaging to work.
@@ -48,16 +50,18 @@ class NotificationService {
       if (kDebugMode) {
         print('Got a message whilst in the foreground!');
         print('Message data: ${message.data}');
-
-        if (message.notification != null) {
-          print('Message also contained a notification: ${message.notification}');
-          print('Title: ${message.notification?.title}');
-          print('Body: ${message.notification?.body}');
-        }
       }
     });
 
-    // 4. Get FCM Token and Sync with Server
+    // 4. Handle notification clicks when app is in background/foreground
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _handleNotificationClick(message);
+    });
+
+    // 5. Check for initial message (app opened from terminated state)
+    _setupInteractedMessage();
+
+    // 6. Get FCM Token and Sync with Server
     String? token = await getToken();
     if (kDebugMode) {
       print("=================================================");
@@ -67,6 +71,44 @@ class NotificationService {
     
     if (token != null) {
       await syncTokenWithServer(token);
+    }
+  }
+
+  /// Handle navigation based on notification data.
+  void _handleNotificationClick(RemoteMessage message) {
+    if (kDebugMode) {
+      print("Notification clicked with data: ${message.data}");
+    }
+
+    final String? screen = message.data['screen'];
+    final String? id = message.data['id'];
+
+    if (screen != null && id != null) {
+      // Map screen names from data to actual routes
+      switch (screen) {
+        case 'achievement_detail':
+          navigatorKey.currentState?.pushNamed('/achievement_detail', arguments: id);
+          break;
+        case 'submission_detail':
+          navigatorKey.currentState?.pushNamed('/submission_detail', arguments: id);
+          break;
+        case 'registration_detail':
+          navigatorKey.currentState?.pushNamed('/registration_detail', arguments: id);
+          break;
+        case 'announcement_detail':
+          navigatorKey.currentState?.pushNamed('/announcement_detail', arguments: id);
+          break;
+        default:
+          if (kDebugMode) print("Unknown screen: $screen");
+      }
+    }
+  }
+
+  /// Check for initial message when the app starts.
+  Future<void> _setupInteractedMessage() async {
+    RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
+    if (initialMessage != null) {
+      _handleNotificationClick(initialMessage);
     }
   }
 

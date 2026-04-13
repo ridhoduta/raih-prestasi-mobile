@@ -7,16 +7,17 @@ class AuthResponse {
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     final token = json['token'];
-    final userJson = json['user'] as Map<String, dynamic>;
+    // Create a mutable copy of the user map to avoid immutability issues
+    final userMap = Map<String, dynamic>.from(json['user'] ?? {});
     
     // Ensure the token is included in the user object for session storage
-    if (token != null && !userJson.containsKey('token')) {
-      userJson['token'] = token;
+    if (token != null) {
+      userMap['token'] = token;
     }
 
     return AuthResponse(
       message: json['message'] ?? '',
-      user: StudentUser.fromJson(userJson),
+      user: StudentUser.fromJson(userMap),
       token: token,
     );
   }
@@ -28,6 +29,8 @@ class StudentUser {
   final String nisn;
   final String? kelas;
   final int? angkatan;
+  final String? email;
+  final String? role;
   final String? token;
 
   StudentUser({
@@ -36,6 +39,8 @@ class StudentUser {
     required this.nisn,
     this.kelas,
     this.angkatan,
+    this.email,
+    this.role,
     this.token,
   });
 
@@ -46,6 +51,8 @@ class StudentUser {
       nisn: json['nisn'] ?? '',
       kelas: json['kelas'],
       angkatan: json['angkatan'],
+      email: json['email'],
+      role: json['role'],
       token: json['token'],
     );
   }
@@ -57,6 +64,8 @@ class StudentUser {
       'nisn': nisn,
       'kelas': kelas,
       'angkatan': angkatan,
+      'email': email,
+      'role': role,
       'token': token,
     };
   }

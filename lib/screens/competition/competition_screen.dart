@@ -64,18 +64,24 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
                 return RefreshIndicator(
                   onRefresh: () => provider.fetchCompetitions(refresh: true),
                   color: AppColors.primaryGreen,
-                  child: ListView.builder(
+                  child: GridView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    itemCount: provider.competitions.length + (provider.hasMore ? 1 : 0),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.58,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                    ),
+                    itemCount: provider.competitions.length + (provider.hasMore ? 2 : 0),
                     itemBuilder: (context, index) {
                       if (index < provider.competitions.length) {
                         return _buildCompetitionCard(provider.competitions[index]);
                       }
-                      return const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                      );
+                      if (index < provider.competitions.length + (provider.hasMore ? 2 : 0)) {
+                        return const CompetitionSkeletonCard();
+                      }
+                      return const SizedBox.shrink();
                     },
                   ),
                 );
@@ -238,41 +244,26 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
 
   Widget _buildCompetitionCard(Competition competition) {
     final dateFormat = DateFormat('dd MMM yyyy');
-    final dateRange =
-        '${dateFormat.format(competition.startDate)} - ${dateFormat.format(competition.endDate)}';
+    final dateRange = '${dateFormat.format(competition.startDate)} - ${dateFormat.format(competition.endDate)}';
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CompetitionDetailScreen(
-                competition: competition,
-                studentId: widget.studentId,
-              ),
-            ),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (context) => CompetitionDetailScreen(competition: competition, studentId: widget.studentId)));
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
               aspectRatio: 16 / 9,
-              child:
-                  competition.thumbnail != null &&
-                      competition.thumbnail!.isNotEmpty
-                  ? Image.network(
-                      competition.thumbnail!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildPlaceholderImage(),
-                    )
+              child: competition.thumbnail != null && competition.thumbnail!.isNotEmpty
+                  ? Image.network(competition.thumbnail!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage())
                   : _buildPlaceholderImage(),
             ),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -280,74 +271,48 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildBadge(
-                          competition.categoryName,
-                          AppColors.lightGreenBg,
-                          AppColors.primaryGreen,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildBadge(
-                          competition.levelName,
-                          const Color(0xFFFFF3E0),
-                          Colors.orange.shade800,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildBadge(
-                          competition.isActive ? 'Aktif' : 'Tutup',
-                          competition.isActive
-                              ? const Color(0xFFE3F2FD)
-                              : const Color(0xFFFFEBEE),
-                          competition.isActive
-                              ? Colors.blue.shade800
-                              : Colors.red.shade800,
-                        ),
+                        _buildBadge(competition.categoryName, AppColors.lightGreenBg, AppColors.primaryGreen),
+                        const SizedBox(width: 4),
+                        _buildBadge(competition.levelName, const Color(0xFFFFF3E0), Colors.orange.shade800),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   Text(
                     competition.title,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 13, height: 1.3),
                   ),
-                  const SizedBox(height: 8),
-                  if (competition.description != null)
-                    Text(
-                      competition.description!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.calendar_month_outlined,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        dateRange,
-                        style: Theme.of(context).textTheme.labelLarge,
+                      const Icon(Icons.calendar_month_outlined, size: 12, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          dateRange,
+                          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
+                    height: 32,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CompetitionRegistrationScreen(
-                              competition: competition,
-                              studentId: widget.studentId,
-                            ),
-                          ),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => CompetitionRegistrationScreen(competition: competition, studentId: widget.studentId)));
                       },
-                      child: const Text('Daftar Sekarang'),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Daftar'),
                     ),
                   ),
                 ],
@@ -391,9 +356,15 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
   }
 
   Widget _buildSkeletonList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: 3,
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.58,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+      ),
+      itemCount: 6,
       itemBuilder: (context, index) => const CompetitionSkeletonCard(),
     );
   }
@@ -455,28 +426,28 @@ class _CompetitionSkeletonCardState extends State<CompetitionSkeletonCard>
     return FadeTransition(
       opacity: _opacity,
       child: Card(
-        margin: const EdgeInsets.only(bottom: 20),
+        margin: EdgeInsets.zero,
         child: Column(
           children: [
             AspectRatio(aspectRatio: 16 / 9, child: Container(color: AppColors.grey100)),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(width: 80, height: 24, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20))),
-                      const SizedBox(width: 8),
-                      Container(width: 60, height: 24, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20))),
+                      Container(width: 50, height: 20, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20))),
+                      const SizedBox(width: 4),
+                      Container(width: 40, height: 20, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20))),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Container(width: double.infinity, height: 24, color: AppColors.grey100),
-                  const SizedBox(height: 8),
-                  Container(width: 200, height: 24, color: AppColors.grey100),
-                  const SizedBox(height: 20),
-                  Container(width: double.infinity, height: 48, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(12))),
+                  const SizedBox(height: 10),
+                  Container(width: double.infinity, height: 16, color: AppColors.grey100),
+                  const SizedBox(height: 6),
+                  Container(width: 100, height: 12, color: AppColors.grey100),
+                  const SizedBox(height: 12),
+                  Container(width: double.infinity, height: 32, decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(8))),
                 ],
               ),
             ),

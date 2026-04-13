@@ -5,6 +5,8 @@ import '../../models/notification.dart';
 import '../../services/api_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import '../../providers/notification_provider.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -14,11 +16,7 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  final ApiService _apiService = ApiService();
-  List<NotificationModel> _notifications = [];
-  bool _isLoading = true;
   String? _studentId;
-  String? _nextCursor;
   bool _isFetchingMore = false;
 
   @override
@@ -33,95 +31,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
       setState(() {
         _studentId = user.id;
       });
-      await _fetchNotifications();
+      await _fetchNotifications(refresh: true);
     }
   }
 
   Future<void> _fetchNotifications({bool refresh = false}) async {
     if (_studentId == null) return;
-
-    if (refresh) {
-      setState(() {
-        _isLoading = true;
-        _nextCursor = null;
-      });
-    }
-
-    try {
-      final response = await _apiService.getNotifications(
-        _studentId!,
-        cursor: _nextCursor,
-        forceRefresh: refresh,
-      );
-
-      setState(() {
-        if (refresh) {
-          _notifications = response.data;
-        } else {
-          _notifications.addAll(response.data);
-        }
-        _nextCursor = response.nextCursor;
-        _isLoading = false;
-        _isFetchingMore = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengambil notifikasi: $e')),
-        );
-      }
-      setState(() {
-        _isLoading = false;
-        _isFetchingMore = false;
-      });
-    }
+    
+    final provider = context.read<NotificationProvider>();
+    await provider.fetchNotifications(_studentId!, refresh: refresh);
+    setState(() {
+      _isFetchingMore = false;
+    });
   }
 
   Future<void> _markAsRead(String? id) async {
     if (_studentId == null) return;
-
-    try {
-      final success = await _apiService.markNotificationsAsRead(
-        _studentId!,
-        notificationId: id,
-      );
-
-      if (success) {
-        setState(() {
-          if (id == null) {
-            // Mark all as read
-            _notifications = _notifications.map((n) {
-              return NotificationModel(
-                id: n.id,
-                title: n.title,
-                body: n.body,
-                type: n.type,
-                isRead: true,
-                createdAt: n.createdAt,
-                studentId: n.studentId,
-              );
-            }).toList();
-          } else {
-            // Mark specific as read
-            final index = _notifications.indexWhere((n) => n.id == id);
-            if (index != -1) {
-              final n = _notifications[index];
-              _notifications[index] = NotificationModel(
-                id: n.id,
-                title: n.title,
-                body: n.body,
-                type: n.type,
-                isRead: true,
-                createdAt: n.createdAt,
-                studentId: n.studentId,
-              );
-            }
-          }
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) print('Error marking as read: $e');
-    }
+    await context.read<NotificationProvider>().markAsRead(_studentId!, notificationId: id);
   }
 
   Widget _buildNotificationIcon(String type) {
@@ -165,20 +91,32 @@ class _NotificationScreenState extends State<NotificationScreen> {
       appBar: AppBar(
         title: const Text('Notifikasi'),
         actions: [
-          if (_notifications.any((n) => !n.isRead))
-            TextButton(
-              onPressed: () => _markAsRead(null),
-              child: const Text('Tandai Semua Dibaca'),
-            ),
+          Consumer<NotificationProvider>(
+            builder: (context, provider, child) {
+              if (provider.notifications.any((n) => !n.isRead)) {
+                return TextButton(
+                  onPressed: () => _markAsRead(null),
+                  child: const Text('Tandai Semua Dibaca'),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => _fetchNotifications(refresh: true),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _notifications.isEmpty
+      body: Consumer<NotificationProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading && provider.notifications.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          return RefreshIndicator(
+            onRefresh: () => _fetchNotifications(refresh: true),
+            child: provider.notifications.isEmpty
                 ? _buildEmptyState()
-                : _buildNotificationList(),
+                : _buildNotificationList(provider),
+          );
+        },
       ),
     );
   }
@@ -213,11 +151,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Widget _buildNotificationList() {
+  Widget _buildNotificationList(NotificationProvider provider) {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification scrollInfo) {
         if (!_isFetchingMore &&
-            _nextCursor != null &&
+            provider.hasMore &&
             scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
           setState(() => _isFetchingMore = true);
           _fetchNotifications();
@@ -226,10 +164,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
       },
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: _notifications.length + (_nextCursor != null ? 1 : 0),
+        itemCount: provider.notifications.length + (provider.hasMore ? 1 : 0),
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          if (index == _notifications.length) {
+          if (index == provider.notifications.length) {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(8.0),
@@ -237,8 +175,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             );
           }
-
-          final notification = _notifications[index];
+ 
+          final notification = provider.notifications[index];
           return _buildNotificationItem(notification);
         },
       ),

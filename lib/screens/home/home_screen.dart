@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:raih_prestasi_mobile/providers/notification_provider.dart';
 import 'package:raih_prestasi_mobile/screens/profile/profile_screen.dart';
 import '../notification/notification_screen.dart';
 import '../../theme/app_theme.dart';
@@ -36,6 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ActivityScreen(studentId: widget.user.id),
     ];
     _titles = ['Beranda', 'Kompetisi', 'Pengumuman', 'Aktivitas Saya'];
+    
+    // Fetch notifications on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().fetchNotifications(widget.user.id, refresh: true);
+    });
   }
 
   void _onItemTapped(int index) {
@@ -55,13 +62,22 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
+          Consumer<NotificationProvider>(
+            builder: (context, provider, child) {
+              return Badge(
+                label: Text(provider.unreadCount.toString()),
+                isLabelVisible: provider.unreadCount > 0,
+                offset: const Offset(-4, 4),
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_none_rounded),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationScreen(),
+                      ),
+                    );
+                  },
                 ),
               );
             },
@@ -225,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       dense: true,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
     );
   }
 }

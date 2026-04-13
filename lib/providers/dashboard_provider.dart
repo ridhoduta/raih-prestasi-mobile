@@ -27,7 +27,7 @@ class DashboardProvider with ChangeNotifier {
     try {
       final results = await Future.wait([
         _apiService.getNews(limit: 5, forceRefresh: refresh),
-        _apiService.getAnnouncements(limit: 5, forceRefresh: refresh),
+        _apiService.getAnnouncements(limit: 3, forceRefresh: refresh),
       ]);
       
       _news = (results[0] as PaginatedResponse<News>).data;
