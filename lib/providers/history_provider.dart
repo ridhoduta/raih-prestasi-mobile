@@ -39,7 +39,7 @@ class HistoryProvider with ChangeNotifier {
 
   // --- Fetchers ---
 
-  Future<void> fetchAchievements({bool refresh = false, String? studentId}) async {
+  Future<void> fetchAchievements({bool refresh = false, String? studentId, String? search}) async {
     if (studentId == null) return;
     if (_isLoadingAchievements || (!refresh && !_hasMoreAchievements)) return;
 
@@ -54,6 +54,7 @@ class HistoryProvider with ChangeNotifier {
       final res = await _apiService.getAchievements(
         studentId,
         cursor: _achievementCursor,
+        search: search,
         forceRefresh: refresh,
       );
       if (refresh) _achievements = [];
@@ -68,7 +69,7 @@ class HistoryProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchSubmissions({bool refresh = false, String? studentId}) async {
+  Future<void> fetchSubmissions({bool refresh = false, String? studentId, String? search}) async {
     if (studentId == null) return;
     if (_isLoadingSubmissions || (!refresh && !_hasMoreSubmissions)) return;
 
@@ -83,6 +84,7 @@ class HistoryProvider with ChangeNotifier {
       final res = await _apiService.getSubmissions(
         studentId,
         cursor: _submissionCursor,
+        search: search,
         forceRefresh: refresh,
       );
       if (refresh) _submissions = [];
@@ -97,7 +99,7 @@ class HistoryProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchRegistrations({bool refresh = false, String? studentId}) async {
+  Future<void> fetchRegistrations({bool refresh = false, String? studentId, String? search}) async {
     if (studentId == null) return;
     if (_isLoadingRegistrations || (!refresh && !_hasMoreRegistrations)) return;
 
@@ -112,6 +114,7 @@ class HistoryProvider with ChangeNotifier {
       final res = await _apiService.getStudentRegistrations(
         studentId,
         cursor: _registrationCursor,
+        search: search,
         forceRefresh: refresh,
       );
       if (refresh) _registrations = [];

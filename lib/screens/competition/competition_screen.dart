@@ -6,6 +6,7 @@ import '../../models/competition.dart';
 import '../../providers/competition_provider.dart';
 import 'competition_detail_screen.dart';
 import 'competition_registration_screen.dart';
+import '../../utils/debouncer.dart';
 
 class CompetitionScreen extends StatefulWidget {
   final String studentId;
@@ -19,6 +20,7 @@ class CompetitionScreen extends StatefulWidget {
 class _CompetitionScreenState extends State<CompetitionScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final Debouncer _debouncer = Debouncer(milliseconds: 500);
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _debouncer.dispose();
     super.dispose();
   }
 
@@ -116,6 +119,9 @@ class _CompetitionScreenState extends State<CompetitionScreen> {
         children: [
           TextField(
             controller: _searchController,
+            onChanged: (val) {
+              _debouncer.run(() => provider.updateFilters(search: val));
+            },
             onSubmitted: (val) => provider.updateFilters(search: val),
             decoration: InputDecoration(
               hintText: 'Cari kompetisi impianmu...',
