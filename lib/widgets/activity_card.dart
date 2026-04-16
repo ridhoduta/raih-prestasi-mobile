@@ -15,8 +15,8 @@ class AchievementActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(achievement.status);
-    final statusBg = statusColor.withOpacity(0.1);
+    final statusColor = _getStatusColor(achievement.status ?? 'MENUNGGU');
+    final statusBg = statusColor.withValues(alpha: 0.1);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
@@ -89,7 +89,7 @@ class AchievementActivityCard extends StatelessWidget {
                             Text(
                               DateFormat(
                                 'dd MMM yyyy',
-                              ).format(achievement.createdAt),
+                              ).format(achievement.createdAt ?? DateTime.now()),
                               style: Theme.of(context).textTheme.labelLarge,
                             ),
                           ],
@@ -116,7 +116,7 @@ class AchievementActivityCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
-                      achievement.status.toUpperCase(),
+                      (achievement.status ?? 'MENUNGGU').toUpperCase(),
                       style: TextStyle(
                         color: statusColor,
                         fontSize: 12,
@@ -147,7 +147,7 @@ class SubmissionActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(submission.status ?? 'MENUNGGU');
-    final statusBg = statusColor.withOpacity(0.1);
+    final statusBg = statusColor.withValues(alpha: 0.1);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
@@ -270,7 +270,7 @@ class RegistrationActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final competition = registration.competition;
     final statusColor = _getStatusColor(registration.status);
-    final statusBg = statusColor.withOpacity(0.1);
+    final statusBg = statusColor.withValues(alpha: 0.1);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 20),

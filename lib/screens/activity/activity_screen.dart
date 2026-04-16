@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../models/competition.dart';
 import '../../models/submission.dart';
@@ -8,8 +6,6 @@ import '../../models/achievement.dart';
 import '../../models/api_response.dart';
 import '../../services/api_service.dart';
 import '../../widgets/activity_card.dart';
-import 'package:provider/provider.dart';
-import '../../providers/history_provider.dart';
 import '../../widgets/activity_skeleton.dart';
 
 class ActivityScreen extends StatefulWidget {
@@ -315,8 +311,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           final allAchievements = snapshot.data?.data ?? [];
           final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
           final achievements = allAchievements.where((a) {
-            final isRecent = a.createdAt.isAfter(oneWeekAgo);
-            final status = a.status.toUpperCase();
+            final isRecent = a.createdAt != null && a.createdAt!.isAfter(oneWeekAgo);
+            final status = (a.status ?? '').toUpperCase();
             final matchesStatus = _selectedStatus == 'SEMUA' || 
                 (_selectedStatus == 'WAITING' && status == 'MENUNGGU') ||
                 (_selectedStatus == 'VERIFIED' && status == 'TERVERIFIKASI') ||
@@ -403,7 +399,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _selectedStatus = filter['value']!;
                 });
               },
-              selectedColor: AppColors.primaryGreen.withOpacity(0.1),
+              selectedColor: AppColors.primaryGreen.withValues(alpha: 0.1),
               checkmarkColor: AppColors.primaryGreen,
               labelStyle: TextStyle(
                 color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary,
@@ -428,23 +424,4 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return RegistrationActivityCard(registration: reg);
   }
 
-  void _showNoteDialog(String note) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Catatan Penyelenggara'),
-        content: Text(note, style: const TextStyle(height: 1.6)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Tutup',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -9,6 +9,7 @@ import '../models/submission.dart';
 import '../models/news.dart';
 import '../models/announcement.dart';
 import '../models/academic_score.dart';
+import '../models/student_academic.dart';
 import '../models/auth_response.dart';
 import '../models/api_response.dart';
 import '../models/notification.dart';
@@ -17,7 +18,7 @@ import 'session_service.dart';
 class ApiService {
   // Use persistent client for connection pooling.
   final http.Client client = http.Client();
-  
+
   // Singleton instance
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
@@ -100,7 +101,9 @@ class ApiService {
     T Function(Map<String, dynamic>) fromJson, {
     bool forceRefresh = false,
   }) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+    final uri = Uri.parse(
+      '$baseUrl$path',
+    ).replace(queryParameters: queryParams);
     final cacheKey = uri.toString();
 
     if (!forceRefresh && _cache.containsKey(cacheKey)) {
@@ -116,7 +119,7 @@ class ApiService {
         _decodeJson,
         response.body,
       );
-      
+
       final paginatedResult = PaginatedResponse.fromJson(jsonData, fromJson);
       _cache[cacheKey] = paginatedResult;
       return paginatedResult;
@@ -131,7 +134,9 @@ class ApiService {
     T Function(Map<String, dynamic>) fromJson, {
     bool forceRefresh = false,
   }) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+    final uri = Uri.parse(
+      '$baseUrl$path',
+    ).replace(queryParameters: queryParams);
     final cacheKey = uri.toString();
 
     if (!forceRefresh && _cache.containsKey(cacheKey)) {
@@ -145,7 +150,7 @@ class ApiService {
         _decodeJson,
         response.body,
       );
-      
+
       final result = fromJson(jsonData['data'] ?? jsonData);
       _cache[cacheKey] = result;
       return result;
@@ -269,10 +274,51 @@ class ApiService {
     );
   }
 
-  Future<List<AcademicScore>> getMyScores(String studentId, {bool forceRefresh = false}) async {
-    final uri = Uri.parse('$baseUrl/student/academic-scores/me?studentId=$studentId');
+  Future<List<StudentAcademic>> getAcademicData({
+    String? search,
+    required String academicYear,
+    required String semester,
+    bool forceRefresh = false,
+  }) async {
+    final queryParams = {
+      'academicYear': academicYear,
+      'semester': semester,
+      if (search != null && search.isNotEmpty) 'search': search,
+    };
+
+    final uri = Uri.parse(
+      '$baseUrl/admin/academic',
+    ).replace(queryParameters: queryParams);
     final cacheKey = uri.toString();
-    
+
+    if (!forceRefresh && _cache.containsKey(cacheKey)) {
+      return _cache[cacheKey] as List<StudentAcademic>;
+    }
+
+    final headers = await _getHeaders();
+    final response = await client.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      final result = data
+          .map((json) => StudentAcademic.fromJson(json))
+          .toList();
+      _cache[cacheKey] = result;
+      return result;
+    } else {
+      throw Exception('Gagal mengambil data akademik');
+    }
+  }
+
+  Future<List<AcademicScore>> getMyScores(
+    String studentId, {
+    bool forceRefresh = false,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/student/academic-scores/me?studentId=$studentId',
+    );
+    final cacheKey = uri.toString();
+
     if (!forceRefresh && _cache.containsKey(cacheKey)) {
       return _cache[cacheKey] as List<AcademicScore>;
     }
@@ -329,9 +375,7 @@ class ApiService {
       final response = await client.post(
         Uri.parse('$baseUrl/student/fcm-token'),
         headers: headers,
-        body: json.encode({
-          'token': token,
-        }),
+        body: json.encode({'token': token}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -365,7 +409,10 @@ class ApiService {
     );
   }
 
-  Future<bool> markNotificationsAsRead(String studentId, {String? notificationId}) async {
+  Future<bool> markNotificationsAsRead(
+    String studentId, {
+    String? notificationId,
+  }) async {
     try {
       final headers = await _getHeaders();
       final response = await client.patch(
@@ -418,7 +465,10 @@ class ApiService {
     return false;
   }
 
-  Future<bool> registerCompetition(String competitionId, Registration registration) async {
+  Future<bool> registerCompetition(
+    String competitionId,
+    Registration registration,
+  ) async {
     final headers = await _getHeaders();
     final response = await client.post(
       Uri.parse('$baseUrl/student/competitions/$competitionId/register'),

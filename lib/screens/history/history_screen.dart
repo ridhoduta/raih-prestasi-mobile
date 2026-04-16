@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/achievement.dart';
@@ -166,7 +165,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         }
 
         final items = provider.achievements.where((a) {
-          final status = a.status.toUpperCase();
+          final status = (a.status ?? '').toUpperCase();
           final matchesStatus =
               _selectedStatus == 'SEMUA' ||
               (_selectedStatus == 'VERIFIED' && status == 'TERVERIFIKASI') ||
@@ -439,7 +438,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   _selectedStatus = filter['value']!;
                 });
               },
-              selectedColor: AppColors.primaryGreen.withOpacity(0.1),
+              selectedColor: AppColors.primaryGreen.withValues(alpha: 0.1),
               checkmarkColor: AppColors.primaryGreen,
               labelStyle: TextStyle(
                 color: isSelected
@@ -462,10 +461,6 @@ class _HistoryScreenState extends State<HistoryScreen>
         },
       ),
     );
-  }
-
-  void _onSearchChanged(String query) {
-    // Search feature removed as per requirement
   }
 
   // --- BOTTOM SHEETS ---
@@ -820,43 +815,5 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  void _confirmDeleteSubmission(String id) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Batalkan Pengajuan?'),
-        content: const Text(
-          'Tindakan ini tidak dapat dibatalkan. Apakah kamu yakin?',
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tidak'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (await ApiService().deleteSubmission(id)) {
-                if (mounted) {
-                  Navigator.pop(context);
-                  context.read<HistoryProvider>().fetchSubmissions(
-                    refresh: true,
-                    studentId: widget.studentId,
-                  );
-                }
-              }
-            },
-            child: Text(
-              'Ya, Batalkan',
-              style: TextStyle(
-                color: Colors.red.shade600,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 

@@ -86,7 +86,7 @@ class ScoreScreen extends StatelessWidget {
           // Group scores by semester + year
           Map<String, List<AcademicScore>> groupedScores = {};
           for (var score in scores) {
-            String key = "Semester ${score.semester} - ${score.year}";
+            String key = "Semester ${score.semester} - ${score.academicYear}";
             if (!groupedScores.containsKey(key)) {
               groupedScores[key] = [];
             }

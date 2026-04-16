@@ -74,12 +74,14 @@ class _AchievementDetailScreenState extends State<AchievementDetailScreen> {
           }
 
           final achievement = snapshot.data!;
-          final dateStr = DateFormat('dd MMMM yyyy').format(achievement.createdAt);
+          final dateStr = achievement.createdAt != null 
+              ? DateFormat('dd MMMM yyyy').format(achievement.createdAt!)
+              : '-';
 
           Color statusColor;
-          String statusLabel = achievement.status;
+          String statusLabel = achievement.status ?? 'Menunggu';
 
-          switch (achievement.status.toUpperCase()) {
+          switch ((achievement.status ?? '').toUpperCase()) {
             case 'TERVERIFIKASI':
               statusColor = Colors.green;
               statusLabel = 'Terverifikasi';
@@ -117,7 +119,7 @@ class _AchievementDetailScreenState extends State<AchievementDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: Text(
@@ -152,7 +154,7 @@ class _AchievementDetailScreenState extends State<AchievementDetailScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [

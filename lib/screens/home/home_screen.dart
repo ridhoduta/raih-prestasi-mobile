@@ -8,6 +8,7 @@ import '../activity/activity_screen.dart';
 import '../competition/competition_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../score/score_screen.dart';
+import '../academic/academic_screen.dart';
 import '../announcement/announcement_screen.dart';
 import '../history/history_screen.dart';
 import '../../models/auth_response.dart';
@@ -197,6 +198,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
+                // Tampilkan Data Akademik hanya jika role adalah admin/guru (opsional)
+                if (widget.user.role == 'admin' || widget.user.role == 'guru')
+                  _buildDrawerItem(
+                    Icons.school_outlined,
+                    Icons.school_rounded,
+                    "Data Akademik Siswa",
+                    () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AcademicScreen(),
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
           ),

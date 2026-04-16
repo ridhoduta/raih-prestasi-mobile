@@ -4,6 +4,8 @@ import 'providers/history_provider.dart';
 import 'providers/competition_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/academic_provider.dart';
+
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'theme/app_theme.dart';
@@ -31,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CompetitionProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => AcademicProvider()),
       ],
       child: const RaihPrestasiApp(),
     ),
